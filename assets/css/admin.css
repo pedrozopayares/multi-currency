@@ -1,0 +1,206 @@
+/* ── Multi Currency – Admin styles ──────────────────────── */
+
+/* ── Tabs ───────────────────────────────────────────────── */
+.imc-tabs {
+    margin-bottom: 0;
+}
+
+.imc-tabs .nav-tab {
+    font-size: 13px;
+    padding: 6px 14px;
+}
+
+/* ── Settings page ──────────────────────────────────────── */
+.imc-settings h2 {
+    margin-top: 28px;
+}
+
+.imc-settings h2:first-of-type {
+    margin-top: 18px;
+}
+
+/* ── Info boxes ─────────────────────────────────────────── */
+.imc-info-box {
+    background: #f0f6fc;
+    border-left: 4px solid #2271b1;
+    padding: 12px 16px;
+    margin: 16px 0;
+}
+
+.imc-info-box h3 {
+    margin: 0 0 6px;
+}
+
+.imc-info-box code {
+    background: #e2e8f0;
+    padding: 2px 6px;
+    font-size: 13px;
+}
+
+/* ── Currency & mapping tables ──────────────────────────── */
+.imc-table {
+    max-width: 900px;
+}
+
+.imc-table th {
+    padding: 10px 8px;
+    font-weight: 600;
+}
+
+.imc-table td {
+    padding: 6px 8px;
+    vertical-align: middle;
+}
+
+.imc-table input.small-text {
+    width: 70px;
+}
+
+.imc-table select {
+    min-width: 140px;
+}
+
+.imc-remove-row {
+    color: #b32d2e !important;
+    border-color: #b32d2e !important;
+    min-width: 32px;
+}
+
+.imc-remove-row:hover {
+    background: #b32d2e !important;
+    color: #fff !important;
+}
+
+/* ── Form tables (General / GTranslate tabs) ────────────── */
+.imc-form-table {
+    max-width: 800px;
+}
+
+.imc-form-table th {
+    width: 250px;
+    padding: 16px 10px 16px 0;
+    vertical-align: top;
+}
+
+.imc-form-table td {
+    padding: 12px 10px;
+}
+
+.imc-form-table .description {
+    margin-top: 4px;
+    color: #646970;
+    font-style: normal;
+}
+
+.imc-form-table select {
+    min-width: 220px;
+}
+
+.imc-form-table input.small-text {
+    width: 80px;
+}
+
+/* ── Toggle switch ──────────────────────────────────────── */
+.imc-toggle {
+    position: relative;
+    display: inline-block;
+    width: 44px;
+    height: 24px;
+    vertical-align: middle;
+}
+
+.imc-toggle input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.imc-toggle__slider {
+    position: absolute;
+    inset: 0;
+    background: #ccc;
+    border-radius: 24px;
+    cursor: pointer;
+    transition: background 0.25s;
+}
+
+.imc-toggle__slider::before {
+    content: '';
+    position: absolute;
+    width: 18px;
+    height: 18px;
+    left: 3px;
+    bottom: 3px;
+    background: #fff;
+    border-radius: 50%;
+    transition: transform 0.25s;
+}
+
+.imc-toggle input:checked + .imc-toggle__slider {
+    background: #2271b1;
+}
+
+.imc-toggle input:checked + .imc-toggle__slider::before {
+    transform: translateX(20px);
+}
+
+.imc-toggle input:focus + .imc-toggle__slider {
+    box-shadow: 0 0 0 2px rgba(34, 113, 177, 0.4);
+}
+
+/* ── Dependent rows (hidden when parent toggle off) ────── */
+tr.imc-dep-hidden td,
+tr.imc-dep-hidden th {
+    opacity: 0.4;
+    pointer-events: none;
+}
+
+/* ── Status table (GTranslate tab) ──────────────────────── */
+.imc-status-table {
+    max-width: 600px;
+}
+
+.imc-status-table td {
+    padding: 10px 14px;
+}
+
+.imc-status-table td:first-child {
+    width: 200px;
+    white-space: nowrap;
+}
+
+.imc-status--ok {
+    color: #00a32a;
+}
+
+.imc-status--warn {
+    color: #d63638;
+}
+
+/* ── Product editor: multi-currency pricing section ────── */
+.imc-product-prices {
+    border-top: 1px dashed #c3c4c7;
+    margin-top: 12px;
+    padding-top: 12px;
+}
+
+.imc-product-prices > p.form-field > strong {
+    color: #2271b1;
+}
+
+/* Variation pricing block */
+.imc-variation-prices {
+    border-top: 1px dashed #c3c4c7;
+    margin-top: 10px;
+    padding-top: 6px;
+    clear: both;
+}
+
+.imc-variation-prices > p.form-row-full {
+    width: 100% !important;
+}
+
+.imc-variation-prices > p.form-row-full strong {
+    color: #2271b1;
+    font-size: 12px;
+}

@@ -1,0 +1,206 @@
+/* ── Multi Currency – Frontend styles ─────────────────── */
+
+/* ── Currency code badge on prices ──────────────────────── */
+.imc-currency-code {
+    display: inline-block;
+    font-size: 0.72em;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    color: #555;
+    background: #f0f0f0;
+    border: 1px solid #ddd;
+    border-radius: 3px;
+    padding: 1px 5px;
+    margin-left: 4px;
+    vertical-align: middle;
+    line-height: 1.5;
+}
+
+del .imc-currency-code {
+    display: none; /* hide badge on struck-through old price */
+}
+
+/* ── Switcher: links variant ────────────────────────────── */
+.imc-switcher--links {
+    display: inline-flex;
+    gap: 4px;
+    align-items: center;
+    font-size: 14px;
+}
+
+.imc-switcher__item {
+    display: inline-block;
+    padding: 4px 10px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    text-decoration: none;
+    color: #333;
+    transition: background 0.15s, border-color 0.15s;
+}
+
+.imc-switcher__item:hover {
+    background: #f5f5f5;
+    border-color: #999;
+    color: #111;
+}
+
+.imc-switcher__item--active {
+    background: #2271b1;
+    border-color: #2271b1;
+    color: #fff;
+    font-weight: 600;
+    pointer-events: none;
+}
+
+/* ── Switcher: dropdown variant ─────────────────────────── */
+.imc-switcher--dropdown select {
+    padding: 6px 10px;
+    font-size: 14px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+/* ── Floating currency switcher widget ──────────────────── */
+.imc-float {
+    position: fixed;
+    z-index: 99999;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif;
+    font-size: 14px;
+}
+
+/* Position variants */
+.imc-float--bottom-left  { bottom: 20px; left: 20px; }
+.imc-float--bottom-right { bottom: 20px; right: 20px; }
+.imc-float--top-left     { top: 20px; left: 20px; }
+.imc-float--top-right    { top: 20px; right: 20px; }
+
+.imc-float__toggle {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 16px;
+    background: #fff;
+    border: 2px solid #2271b1;
+    border-radius: 50px;
+    cursor: pointer;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+    transition: box-shadow 0.2s, transform 0.15s;
+    font-size: 14px;
+    font-weight: 600;
+    color: #1d2327;
+    line-height: 1;
+}
+
+.imc-float__toggle:hover {
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+    transform: translateY(-1px);
+}
+
+.imc-float__flag {
+    font-size: 20px;
+    line-height: 1;
+}
+
+.imc-float__code {
+    letter-spacing: 0.05em;
+}
+
+/* Panel (hidden by default) */
+.imc-float__panel {
+    display: none;
+    position: absolute;
+    bottom: calc(100% + 8px);
+    left: 0;
+    min-width: 200px;
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 12px;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.18);
+    overflow: hidden;
+    animation: imcSlideUp 0.2s ease-out;
+}
+
+/* Top positions: panel opens downward */
+.imc-float--top-left .imc-float__panel,
+.imc-float--top-right .imc-float__panel {
+    bottom: auto;
+    top: calc(100% + 8px);
+    animation: imcSlideDown 0.2s ease-out;
+}
+
+/* Right positions: panel aligns to the right */
+.imc-float--bottom-right .imc-float__panel,
+.imc-float--top-right .imc-float__panel {
+    left: auto;
+    right: 0;
+}
+
+.imc-float.imc-float--open .imc-float__panel {
+    display: block;
+}
+
+@keyframes imcSlideUp {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes imcSlideDown {
+    from { opacity: 0; transform: translateY(-8px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+.imc-float__title {
+    display: block;
+    padding: 12px 16px 8px;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: #888;
+}
+
+.imc-float__option {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 16px;
+    text-decoration: none;
+    color: #1d2327;
+    transition: background 0.1s;
+}
+
+.imc-float__option:hover {
+    background: #f0f6fc;
+    color: #1d2327;
+}
+
+.imc-float__option--active {
+    background: #f0f6fc;
+    font-weight: 600;
+}
+
+.imc-float__option:last-child {
+    border-radius: 0 0 12px 12px;
+}
+
+.imc-float__option-flag {
+    font-size: 18px;
+    line-height: 1;
+}
+
+.imc-float__option-code {
+    font-weight: 600;
+    min-width: 30px;
+}
+
+.imc-float__option-name {
+    color: #666;
+    font-size: 13px;
+}
+
+.imc-float__check {
+    margin-left: auto;
+    color: #2271b1;
+    font-weight: 700;
+}

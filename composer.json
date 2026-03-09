@@ -1,0 +1,17 @@
+{
+    "name": "japp/multi-currency",
+    "description": "Multi Currency with Multi Language Detector for WooCommerce - Dev dependencies",
+    "type": "wordpress-plugin",
+    "require-dev": {
+        "phpunit/phpunit": "^10.5"
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "IMC\\Tests\\": "tests/"
+        }
+    },
+    "config": {
+        "allow-plugins": {},
+        "sort-packages": true
+    }
+}
