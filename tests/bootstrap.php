@@ -382,9 +382,14 @@ function wc_format_decimal( $number, $dp = false, $trim_zeros = false ) {
 class WC_Product {
     private $meta = [];
     private $id;
+    private $children = [];
+
+    /** @var array<int, WC_Product> Global product registry for wc_get_product(). */
+    private static $registry = [];
 
     public function __construct( $id = 1 ) {
         $this->id = $id;
+        self::$registry[ $id ] = $this;
     }
 
     public function get_id() {
@@ -399,13 +404,25 @@ class WC_Product {
         return $this->meta[ $key ] ?? '';
     }
 
+    public function set_children( array $ids ) {
+        $this->children = $ids;
+    }
+
     public function get_children() {
-        return [];
+        return $this->children;
+    }
+
+    public static function get_from_registry( $id ) {
+        return self::$registry[ $id ] ?? null;
+    }
+
+    public static function clear_registry() {
+        self::$registry = [];
     }
 }
 
 function wc_get_product( $id ) {
-    return new WC_Product( $id );
+    return WC_Product::get_from_registry( $id ) ?? new WC_Product( $id );
 }
 
 // ── Helper to reset global state between tests ─────────────
@@ -436,6 +453,9 @@ function imc_reset_test_state() {
     // Clean superglobals used by the plugin.
     unset( $_GET['imc_currency'], $_GET['lang'], $_COOKIE['imc_currency'] );
     unset( $_POST['imc_save_settings'], $_POST['imc_nonce'], $_POST['imc_currency'], $_POST['imc_lang'], $_POST['imc_settings'] );
+
+    // Clear the WC_Product registry.
+    WC_Product::clear_registry();
 }
 
 // ── Load plugin classes ────────────────────────────────────

@@ -201,6 +201,14 @@ class IMC_Price_Handler {
             return $regular;
         }
 
+        // Variable products: check if any variation has the currency price.
+        // If so, the parent is NOT a fallback — filter_variation_prices() will
+        // supply the correct per-variation amounts.
+        if ( $this->any_variation_has_currency( $product, $cur ) ) {
+            $this->current_fallback_product_id = null;
+            return $price;
+        }
+
         // No custom price for this currency → mark as fallback.
         $this->fallback_products[ $product->get_id() ] = true;
         $this->current_fallback_product_id = $product->get_id();
@@ -217,6 +225,11 @@ class IMC_Price_Handler {
         if ( '' !== $regular && false !== $regular ) {
             $this->current_fallback_product_id = null;
             return $regular;
+        }
+
+        if ( $this->any_variation_has_currency( $product, $cur ) ) {
+            $this->current_fallback_product_id = null;
+            return $price;
         }
 
         $this->fallback_products[ $product->get_id() ] = true;
@@ -238,8 +251,10 @@ class IMC_Price_Handler {
         // Only mark fallback if there's also no regular price.
         $regular = $product->get_meta( "_imc_regular_price_{$cur}" );
         if ( '' === $regular || false === $regular ) {
-            $this->fallback_products[ $product->get_id() ] = true;
-            $this->current_fallback_product_id = $product->get_id();
+            if ( ! $this->any_variation_has_currency( $product, $cur ) ) {
+                $this->fallback_products[ $product->get_id() ] = true;
+                $this->current_fallback_product_id = $product->get_id();
+            }
         }
         return $price;
     }
@@ -388,5 +403,28 @@ class IMC_Price_Handler {
     public function product_has_currency_price( $product, $currency ) {
         $regular = $product->get_meta( "_imc_regular_price_{$currency}" );
         return ( '' !== $regular && false !== $regular );
+    }
+
+    /* ================================================================
+     *  Helper: does any child variation have a price in $currency?
+     *  Returns false immediately for non-variable products (no children).
+     * ============================================================= */
+
+    private function any_variation_has_currency( $product, $currency ) {
+        $children = $product->get_children();
+        if ( empty( $children ) ) {
+            return false;
+        }
+        foreach ( $children as $var_id ) {
+            $variation = wc_get_product( $var_id );
+            if ( ! $variation ) {
+                continue;
+            }
+            $regular = $variation->get_meta( "_imc_regular_price_{$currency}" );
+            if ( '' !== $regular && false !== $regular ) {
+                return true;
+            }
+        }
+        return false;
     }
 }

@@ -421,6 +421,90 @@ class PriceHandlerTest extends TestCase {
         $this->assertCount( 2, $hash );
     }
 
+    /* ── Variable product: no false fallback ────────────── */
+
+    public function test_variable_product_not_marked_fallback_when_variations_have_price(): void {
+        $_COOKIE['imc_currency'] = 'EUR';
+        update_option( 'imc_plugin_settings', [ 'show_currency_badge' => '1', 'badge_position' => 'after' ] );
+
+        // Create variations with EUR prices.
+        $var1 = new WC_Product( 101 );
+        $var1->set_meta( '_imc_regular_price_EUR', '25.00' );
+        $var2 = new WC_Product( 102 );
+        $var2->set_meta( '_imc_regular_price_EUR', '35.00' );
+
+        // Parent variable product references those children.
+        $parent = new WC_Product( 100 );
+        $parent->set_children( [ 101, 102 ] );
+
+        $handler = new IMC_Price_Handler();
+        $handler->filter_price( '80000', $parent );
+
+        // Currency should be active (EUR), NOT default (COP).
+        $this->assertSame( 'EUR', $handler->filter_currency( 'COP' ) );
+    }
+
+    public function test_variable_product_badge_shows_active_currency(): void {
+        $_COOKIE['imc_currency'] = 'EUR';
+        update_option( 'imc_plugin_settings', [ 'show_currency_badge' => '1', 'badge_position' => 'after' ] );
+
+        $var1 = new WC_Product( 111 );
+        $var1->set_meta( '_imc_regular_price_EUR', '25.00' );
+
+        $parent = new WC_Product( 110 );
+        $parent->set_children( [ 111 ] );
+
+        $handler = new IMC_Price_Handler();
+        $handler->filter_price( '80000', $parent );
+
+        $result = $handler->append_currency_badge( '<span class="price">€25.00</span>', $parent );
+
+        $this->assertStringContainsString( '>EUR<', $result );
+        $this->assertStringNotContainsString( 'imc-currency-notice', $result );
+    }
+
+    public function test_variable_product_fallback_when_no_variation_has_price(): void {
+        $_COOKIE['imc_currency'] = 'EUR';
+        update_option( 'imc_plugin_settings', [ 'show_currency_badge' => '1', 'badge_position' => 'after' ] );
+
+        // Variations without EUR prices.
+        $var1 = new WC_Product( 121 );
+        $var2 = new WC_Product( 122 );
+
+        $parent = new WC_Product( 120 );
+        $parent->set_children( [ 121, 122 ] );
+
+        $handler = new IMC_Price_Handler();
+        $handler->filter_price( '80000', $parent );
+
+        // Should get fallback to COP.
+        $this->assertSame( 'COP', $handler->filter_currency( 'COP' ) );
+
+        $result = $handler->append_currency_badge( '<span class="price">$80.000</span>', $parent );
+
+        $this->assertStringContainsString( '>COP<', $result );
+        $this->assertStringContainsString( 'imc-currency-notice', $result );
+        $this->assertStringContainsString( 'EUR', $result ); // Notice mentions EUR.
+    }
+
+    public function test_variable_product_formatting_uses_active_currency(): void {
+        $_COOKIE['imc_currency'] = 'USD';
+
+        $var1 = new WC_Product( 131 );
+        $var1->set_meta( '_imc_regular_price_USD', '29.99' );
+
+        $parent = new WC_Product( 130 );
+        $parent->set_children( [ 131 ] );
+
+        $handler = new IMC_Price_Handler();
+        $this->set_imc_currency_manager();
+
+        $handler->filter_price( '100000', $parent );
+
+        // Formatting filters should use active currency (USD), not default.
+        $this->assertSame( 2, $handler->filter_decimals( 0 ) );
+    }
+
     /* ── Helper ─────────────────────────────────────────── */
 
     private function set_imc_currency_manager(): void {
