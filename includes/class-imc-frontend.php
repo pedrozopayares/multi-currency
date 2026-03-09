@@ -139,7 +139,7 @@ class IMC_Frontend {
                 : 'imc-switcher__item';
 
             printf(
-                '<a href="%s" class="%s" data-currency="%s">%s %s</a>',
+                '<a href="%s" class="%s notranslate" translate="no" data-currency="%s">%s %s</a>',
                 $url,
                 esc_attr( $class ),
                 esc_attr( $code ),
@@ -159,7 +159,7 @@ class IMC_Frontend {
             $selected = selected( $code, $active, false );
 
             printf(
-                '<option value="%s" %s>%s %s — %s</option>',
+                '<option value="%s" %s translate="no">%s %s — %s</option>',
                 $url,
                 $selected,
                 esc_html( $c['symbol'] ),
@@ -192,11 +192,11 @@ class IMC_Frontend {
         <div class="imc-float imc-float--<?php echo esc_attr( $float_pos ); ?>" id="imc-float">
             <button class="imc-float__toggle" id="imc-float-toggle" type="button"
                     aria-expanded="false" aria-label="<?php esc_attr_e( 'Cambiar moneda', 'japp-mc' ); ?>">
-                <span class="imc-float__flag"><?php echo esc_html( $flag_map[ $active ] ?? '💱' ); ?></span>
-                <span class="imc-float__code"><?php echo esc_html( $active ); ?></span>
+                <span class="imc-float__flag notranslate" translate="no"><?php echo esc_html( $flag_map[ $active ] ?? '💱' ); ?></span>
+                <span class="imc-float__code notranslate" translate="no"><?php echo esc_html( $active ); ?></span>
             </button>
             <div class="imc-float__panel" id="imc-float-panel">
-                <span class="imc-float__title"><?php esc_html_e( 'Moneda', 'japp-mc' ); ?></span>
+                <span class="imc-float__title notranslate" translate="no"><?php esc_html_e( 'Moneda', 'japp-mc' ); ?></span>
                 <?php foreach ( $currencies as $code => $c ) :
                     $is_active = ( $code === $active );
                     $url       = esc_url( add_query_arg( 'imc_currency', $code ) );
@@ -205,9 +205,9 @@ class IMC_Frontend {
                     <a href="<?php echo $url; ?>"
                        class="imc-float__option<?php echo $is_active ? ' imc-float__option--active' : ''; ?>"
                        data-currency="<?php echo esc_attr( $code ); ?>">
-                        <span class="imc-float__option-flag"><?php echo esc_html( $flag ); ?></span>
-                        <span class="imc-float__option-code"><?php echo esc_html( $code ); ?></span>
-                        <span class="imc-float__option-name"><?php echo esc_html( $c['name'] ); ?></span>
+                        <span class="imc-float__option-flag notranslate" translate="no"><?php echo esc_html( $flag ); ?></span>
+                        <span class="imc-float__option-code notranslate" translate="no"><?php echo esc_html( $code ); ?></span>
+                        <span class="imc-float__option-name notranslate" translate="no"><?php echo esc_html( $c['name'] ); ?></span>
                         <?php if ( $is_active ) : ?>
                             <span class="imc-float__check">✓</span>
                         <?php endif; ?>

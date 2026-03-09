@@ -277,7 +277,7 @@ class IMC_Price_Handler {
         $code = IMC()->get_active_currency();
         $this->filtering = false;
 
-        $badge = '<span class="imc-currency-code">' . esc_html( $code ) . '</span>';
+        $badge = '<span class="imc-currency-code notranslate" translate="no">' . esc_html( $code ) . '</span>';
 
         // Badge position: before or after the price HTML.
         if ( IMC_Admin_Settings::get( 'badge_position' ) === 'before' ) {
