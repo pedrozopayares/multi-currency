@@ -245,6 +245,103 @@ function is_plugin_active( $plugin ) {
     return in_array( $plugin, $wp_test_active_plugins ?? [], true );
 }
 
+// ── Transient stubs (used by GitHub Updater) ───────────────
+global $wp_test_transients;
+$wp_test_transients = [];
+
+function get_transient( $key ) {
+    global $wp_test_transients;
+    return $wp_test_transients[ $key ] ?? false;
+}
+
+function set_transient( $key, $value, $expiration = 0 ) {
+    global $wp_test_transients;
+    $wp_test_transients[ $key ] = $value;
+    return true;
+}
+
+function delete_transient( $key ) {
+    global $wp_test_transients;
+    unset( $wp_test_transients[ $key ] );
+    return true;
+}
+
+// ── HTTP stubs ─────────────────────────────────────────────
+global $wp_test_remote_response;
+$wp_test_remote_response = null;
+
+if ( ! class_exists( 'WP_Error' ) ) {
+    class WP_Error {
+        public $errors = [];
+        public function __construct( $code = '', $message = '' ) {
+            if ( $code ) {
+                $this->errors[ $code ] = [ $message ];
+            }
+        }
+    }
+}
+
+function is_wp_error( $thing ) {
+    return $thing instanceof WP_Error;
+}
+
+function wp_remote_get( $url, $args = [] ) {
+    global $wp_test_remote_response;
+    if ( null !== $wp_test_remote_response ) {
+        return $wp_test_remote_response;
+    }
+    return new WP_Error( 'http_request_failed', 'Stubbed: no response configured' );
+}
+
+function wp_remote_retrieve_response_code( $response ) {
+    if ( is_wp_error( $response ) ) {
+        return 0;
+    }
+    return $response['response']['code'] ?? 0;
+}
+
+function wp_remote_retrieve_body( $response ) {
+    if ( is_wp_error( $response ) ) {
+        return '';
+    }
+    return $response['body'] ?? '';
+}
+
+// ── Misc WP stubs needed by GitHub Updater ─────────────────
+if ( ! defined( 'WP_PLUGIN_DIR' ) ) {
+    define( 'WP_PLUGIN_DIR', '/var/www/html/wp-content/plugins' );
+}
+
+function plugin_basename( $file ) {
+    $plugin_dir = WP_PLUGIN_DIR . '/';
+    $file = str_replace( '\\', '/', $file );
+    $file = preg_replace( '#^.*wp-content/plugins/#', '', $file );
+    return $file;
+}
+
+function get_bloginfo( $show = '' ) {
+    if ( 'version' === $show ) {
+        return '6.7';
+    }
+    return '';
+}
+
+function home_url( $path = '' ) {
+    return 'http://localhost' . $path;
+}
+
+function activate_plugin( $plugin, $redirect = '', $network_wide = false, $silent = false ) {
+    return null;
+}
+
+function date_i18n( $format, $timestamp = false, $gmt = false ) {
+    return date( $format, $timestamp ?: time() );
+}
+
+function nl2br_safe( $str ) {
+    return nl2br( $str );
+}
+
 // ── WooCommerce function stubs ─────────────────────────────
 
 function get_woocommerce_currency_symbols() {
@@ -316,7 +413,8 @@ function wc_get_product( $id ) {
 function imc_reset_test_state() {
     global $wp_test_options, $wp_test_filters, $wp_test_is_admin,
            $wp_test_doing_ajax, $wp_test_raw_referer, $wp_test_user_can,
-           $wp_test_active_plugins, $wp_test_localized_scripts;
+           $wp_test_active_plugins, $wp_test_localized_scripts,
+           $wp_test_transients, $wp_test_remote_response;
 
     $wp_test_options = [
         'woocommerce_currency'              => 'COP',
@@ -332,6 +430,8 @@ function imc_reset_test_state() {
     $wp_test_user_can          = true;
     $wp_test_active_plugins    = [];
     $wp_test_localized_scripts = [];
+    $wp_test_transients        = [];
+    $wp_test_remote_response   = null;
 
     // Clean superglobals used by the plugin.
     unset( $_GET['imc_currency'], $_GET['lang'], $_COOKIE['imc_currency'] );
@@ -346,6 +446,7 @@ require_once IMC_PLUGIN_DIR . 'includes/class-imc-language-detector.php';
 require_once IMC_PLUGIN_DIR . 'includes/class-imc-price-handler.php';
 require_once IMC_PLUGIN_DIR . 'includes/class-imc-frontend.php';
 require_once IMC_PLUGIN_DIR . 'includes/class-imc-product-fields.php';
+require_once IMC_PLUGIN_DIR . 'includes/class-imc-github-updater.php';
 require_once IMC_PLUGIN_DIR . 'includes/class-imc-core.php';
 
 /**

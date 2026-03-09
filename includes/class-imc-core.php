@@ -26,6 +26,9 @@ class IMC_Core {
     /** @var IMC_Frontend|null */
     public $frontend;
 
+    /** @var IMC_GitHub_Updater|null */
+    public $updater;
+
     /* ── Singleton ──────────────────────────────────────── */
 
     public static function instance() {
@@ -50,6 +53,7 @@ class IMC_Core {
         require_once $dir . 'class-imc-admin-settings.php';
         require_once $dir . 'class-imc-product-fields.php';
         require_once $dir . 'class-imc-frontend.php';
+        require_once $dir . 'class-imc-github-updater.php';
     }
 
     private function init_components() {
@@ -64,6 +68,14 @@ class IMC_Core {
 
         // Frontend + AJAX (WC AJAX goes through admin-ajax.php so is_admin() is true)
         $this->frontend = new IMC_Frontend();
+
+        // GitHub-based auto-updater.
+        $this->updater = new IMC_GitHub_Updater(
+            IMC_PLUGIN_FILE,
+            'pedrozopayares',
+            'multi-currency',
+            IMC_VERSION
+        );
     }
 
     /* ── Public API ─────────────────────────────────────── */
