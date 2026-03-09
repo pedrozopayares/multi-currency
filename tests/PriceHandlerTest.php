@@ -185,11 +185,16 @@ class PriceHandlerTest extends TestCase {
         $handler    = new IMC_Price_Handler();
         $price_html = '<span class="price">$29.99</span>';
         $product    = new WC_Product( 42 );
+        $product->set_meta( '_imc_regular_price_USD', '29.99' );
+
+        // Simulate that filter_price ran first (no fallback since meta exists).
+        $handler->filter_price( '100000', $product );
 
         $result = $handler->append_currency_badge( $price_html, $product );
 
         $this->assertStringContainsString( 'imc-currency-code', $result );
         $this->assertStringContainsString( 'USD', $result );
+        $this->assertStringNotContainsString( 'imc-currency-notice', $result );
     }
 
     public function test_append_currency_badge_position_before(): void {
@@ -199,6 +204,9 @@ class PriceHandlerTest extends TestCase {
         $handler    = new IMC_Price_Handler();
         $price_html = '<span class="price">€29.99</span>';
         $product    = new WC_Product( 42 );
+        $product->set_meta( '_imc_regular_price_EUR', '29.99' );
+
+        $handler->filter_price( '120000', $product );
 
         $result = $handler->append_currency_badge( $price_html, $product );
 
@@ -208,6 +216,7 @@ class PriceHandlerTest extends TestCase {
         $badge_pos = strpos( $result, 'EUR' );
         $price_pos = strpos( $result, '€29.99' );
         $this->assertLessThan( $price_pos, $badge_pos, 'Badge should appear before the price.' );
+        $this->assertStringNotContainsString( 'imc-currency-notice', $result );
     }
 
     public function test_append_currency_badge_disabled(): void {
@@ -217,10 +226,16 @@ class PriceHandlerTest extends TestCase {
         $handler    = new IMC_Price_Handler();
         $price_html = '<span class="price">$29.99</span>';
         $product    = new WC_Product( 42 );
+        $product->set_meta( '_imc_regular_price_USD', '29.99' );
+
+        // Simulate filter_price ran first (no fallback since meta exists).
+        $handler->filter_price( '100000', $product );
 
         $result = $handler->append_currency_badge( $price_html, $product );
 
+        // Badge disabled and no fallback → original HTML returned as-is.
         $this->assertStringNotContainsString( 'imc-currency-code', $result );
+        $this->assertStringNotContainsString( 'imc-currency-notice', $result );
         $this->assertSame( $price_html, $result );
     }
 
@@ -228,6 +243,84 @@ class PriceHandlerTest extends TestCase {
         $handler = new IMC_Price_Handler();
         $result  = $handler->append_currency_badge( '', new WC_Product() );
         $this->assertSame( '', $result );
+    }
+
+    /* ── Fallback: product without active currency price ── */
+
+    public function test_badge_shows_default_currency_on_fallback(): void {
+        $_COOKIE['imc_currency'] = 'USD';
+        update_option( 'imc_plugin_settings', [ 'show_currency_badge' => '1', 'badge_position' => 'after' ] );
+
+        $handler = new IMC_Price_Handler();
+        $product = new WC_Product( 50 );
+        // No USD meta → filter_price falls back to original.
+        $handler->filter_price( '100000', $product );
+
+        $result = $handler->append_currency_badge( '<span class="price">$100.000</span>', $product );
+
+        // Badge should show default currency (COP), not active (USD).
+        $this->assertStringContainsString( '>COP<', $result );
+        $this->assertStringNotContainsString( '>USD<', $result );
+    }
+
+    public function test_fallback_shows_unavailable_notice(): void {
+        $_COOKIE['imc_currency'] = 'USD';
+        update_option( 'imc_plugin_settings', [ 'show_currency_badge' => '1', 'badge_position' => 'after' ] );
+
+        $handler = new IMC_Price_Handler();
+        $product = new WC_Product( 51 );
+        $handler->filter_price( '100000', $product );
+
+        $result = $handler->append_currency_badge( '<span class="price">$100.000</span>', $product );
+
+        $this->assertStringContainsString( 'imc-currency-notice', $result );
+        $this->assertStringContainsString( 'USD', $result ); // USD in the notice text.
+    }
+
+    public function test_fallback_notice_shown_even_when_badge_disabled(): void {
+        $_COOKIE['imc_currency'] = 'USD';
+        update_option( 'imc_plugin_settings', [ 'show_currency_badge' => '0' ] );
+
+        $handler = new IMC_Price_Handler();
+        $product = new WC_Product( 52 );
+        $handler->filter_price( '100000', $product );
+
+        $result = $handler->append_currency_badge( '<span class="price">$100.000</span>', $product );
+
+        // No badge, but notice should still appear.
+        $this->assertStringNotContainsString( 'imc-currency-code', $result );
+        $this->assertStringContainsString( 'imc-currency-notice', $result );
+    }
+
+    public function test_no_fallback_when_product_has_active_currency_price(): void {
+        $_COOKIE['imc_currency'] = 'EUR';
+        update_option( 'imc_plugin_settings', [ 'show_currency_badge' => '1', 'badge_position' => 'after' ] );
+
+        $handler = new IMC_Price_Handler();
+        $product = new WC_Product( 53 );
+        $product->set_meta( '_imc_regular_price_EUR', '25.00' );
+
+        $handler->filter_price( '100000', $product );
+
+        $result = $handler->append_currency_badge( '<span class="price">€25.00</span>', $product );
+
+        $this->assertStringContainsString( '>EUR<', $result );
+        $this->assertStringNotContainsString( 'imc-currency-notice', $result );
+    }
+
+    public function test_product_has_currency_price_true(): void {
+        $handler = new IMC_Price_Handler();
+        $product = new WC_Product( 54 );
+        $product->set_meta( '_imc_regular_price_USD', '29.99' );
+
+        $this->assertTrue( $handler->product_has_currency_price( $product, 'USD' ) );
+    }
+
+    public function test_product_has_currency_price_false(): void {
+        $handler = new IMC_Price_Handler();
+        $product = new WC_Product( 55 );
+
+        $this->assertFalse( $handler->product_has_currency_price( $product, 'USD' ) );
     }
 
     /* ── Cart hash ──────────────────────────────────────── */

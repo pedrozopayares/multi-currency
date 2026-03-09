@@ -10,6 +10,15 @@ class IMC_Price_Handler {
     /** @var bool Guard against recursive filter calls. */
     private $filtering = false;
 
+    /**
+     * Tracks product IDs that fell back to the default currency because
+     * no custom price was set for the active currency.
+     * Populated by filter_price() and read by append_currency_badge().
+     *
+     * @var array<int, bool>
+     */
+    private $fallback_products = [];
+
     public function __construct() {
 
         /* ── Currency code & symbol ─────────────────────── */
@@ -170,7 +179,14 @@ class IMC_Price_Handler {
         }
 
         $regular = $product->get_meta( "_imc_regular_price_{$cur}" );
-        return ( '' !== $regular && false !== $regular ) ? $regular : $price;
+
+        if ( '' !== $regular && false !== $regular ) {
+            return $regular;
+        }
+
+        // No custom price for this currency → mark as fallback.
+        $this->fallback_products[ $product->get_id() ] = true;
+        return $price;
     }
 
     public function filter_regular_price( $price, $product ) {
@@ -179,7 +195,13 @@ class IMC_Price_Handler {
         }
         $cur     = IMC()->get_active_currency();
         $regular = $product->get_meta( "_imc_regular_price_{$cur}" );
-        return ( '' !== $regular && false !== $regular ) ? $regular : $price;
+
+        if ( '' !== $regular && false !== $regular ) {
+            return $regular;
+        }
+
+        $this->fallback_products[ $product->get_id() ] = true;
+        return $price;
     }
 
     public function filter_sale_price( $price, $product ) {
@@ -188,7 +210,17 @@ class IMC_Price_Handler {
         }
         $cur  = IMC()->get_active_currency();
         $sale = $product->get_meta( "_imc_sale_price_{$cur}" );
-        return ( '' !== $sale && false !== $sale ) ? $sale : $price;
+
+        if ( '' !== $sale && false !== $sale ) {
+            return $sale;
+        }
+
+        // Only mark fallback if there's also no regular price.
+        $regular = $product->get_meta( "_imc_regular_price_{$cur}" );
+        if ( '' === $regular || false === $regular ) {
+            $this->fallback_products[ $product->get_id() ] = true;
+        }
+        return $price;
     }
 
     /* ================================================================
@@ -259,14 +291,13 @@ class IMC_Price_Handler {
     /**
      * Append a small <span class="imc-currency-code"> badge after every
      * formatted price so the user always knows which currency is displayed.
+     *
+     * When the product has no price in the active currency (fallback to
+     * default), the badge shows the default currency code and a small
+     * "not available" notice is appended.
      */
     public function append_currency_badge( $price_html, $product ) {
         if ( ! $this->should_filter() || empty( $price_html ) ) {
-            return $price_html;
-        }
-
-        // Respect the "show currency badge" setting.
-        if ( IMC_Admin_Settings::get( 'show_currency_badge' ) !== '1' ) {
             return $price_html;
         }
 
@@ -274,16 +305,64 @@ class IMC_Price_Handler {
             return $price_html;
         }
         $this->filtering = true;
-        $code = IMC()->get_active_currency();
-        $this->filtering = false;
+        $active_currency  = IMC()->get_active_currency();
+        $default_currency = IMC()->get_default_currency();
+        $this->filtering  = false;
 
-        $badge = '<span class="imc-currency-code notranslate" translate="no">' . esc_html( $code ) . '</span>';
-
-        // Badge position: before or after the price HTML.
-        if ( IMC_Admin_Settings::get( 'badge_position' ) === 'before' ) {
-            return $badge . ' ' . $price_html;
+        // Determine if this product fell back to the default currency.
+        $is_fallback = false;
+        if ( $active_currency !== $default_currency ) {
+            $pid = $product->get_id();
+            if ( ! empty( $this->fallback_products[ $pid ] ) ) {
+                $is_fallback = true;
+                // Clean up to avoid stale data on subsequent calls.
+                unset( $this->fallback_products[ $pid ] );
+            }
         }
 
-        return $price_html . ' ' . $badge;
+        // The displayed currency is the default when it's a fallback.
+        $displayed_currency = $is_fallback ? $default_currency : $active_currency;
+
+        // Respect the "show currency badge" setting.
+        $show_badge = IMC_Admin_Settings::get( 'show_currency_badge' ) === '1';
+
+        $badge = '';
+        if ( $show_badge ) {
+            $badge = '<span class="imc-currency-code notranslate" translate="no">' . esc_html( $displayed_currency ) . '</span>';
+        }
+
+        // Build the "not available" notice for fallback products.
+        $notice = '';
+        if ( $is_fallback ) {
+            $notice = '<span class="imc-currency-notice notranslate" translate="no">'
+                    . esc_html(
+                        sprintf(
+                            /* translators: %s: currency code (e.g. USD) */
+                            __( 'Precio no disponible en %s', 'japp-mc' ),
+                            $active_currency
+                        )
+                    )
+                    . '</span>';
+        }
+
+        // Badge position: before or after the price HTML.
+        if ( $show_badge && IMC_Admin_Settings::get( 'badge_position' ) === 'before' ) {
+            return $badge . ' ' . $price_html . $notice;
+        }
+
+        return $price_html . ( $show_badge ? ' ' . $badge : '' ) . $notice;
+    }
+
+    /* ================================================================
+     *  Utility: check if a product fell back to default currency.
+     *  Public so it can be used by other components if needed.
+     * ============================================================= */
+
+    /**
+     * Whether the given product has a custom price for the specified currency.
+     */
+    public function product_has_currency_price( $product, $currency ) {
+        $regular = $product->get_meta( "_imc_regular_price_{$currency}" );
+        return ( '' !== $regular && false !== $regular );
     }
 }

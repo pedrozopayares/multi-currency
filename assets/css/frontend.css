@@ -20,6 +20,20 @@ del .imc-currency-code {
     display: none; /* hide badge on struck-through old price */
 }
 
+/* Fallback notice when product price is not available in active currency */
+.imc-currency-notice {
+    display: block;
+    font-size: 0.72em;
+    font-style: italic;
+    color: #888;
+    margin-top: 2px;
+    line-height: 1.4;
+}
+
+del .imc-currency-notice {
+    display: none;
+}
+
 /* ── Switcher: links variant ────────────────────────────── */
 .imc-switcher--links {
     display: inline-flex;
