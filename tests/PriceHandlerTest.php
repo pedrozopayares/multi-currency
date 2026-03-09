@@ -260,7 +260,8 @@ class PriceHandlerTest extends TestCase {
 
         // Badge should show default currency (COP), not active (USD).
         $this->assertStringContainsString( '>COP<', $result );
-        $this->assertStringNotContainsString( '>USD<', $result );
+        // The badge span itself must not contain USD (USD only appears in the notice).
+        $this->assertStringNotContainsString( 'imc-currency-code notranslate" translate="no">USD<', $result );
     }
 
     public function test_fallback_shows_unavailable_notice(): void {

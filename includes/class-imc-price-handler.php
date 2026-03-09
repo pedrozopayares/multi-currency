@@ -369,15 +369,16 @@ class IMC_Price_Handler {
         }
 
         // Build the "not available" notice for fallback products.
+        // The notice text is translatable by GTranslate, but the currency
+        // code inside it is wrapped in a notranslate span.
         $notice = '';
         if ( $is_fallback ) {
-            $notice = '<span class="imc-currency-notice notranslate" translate="no">'
-                    . esc_html(
-                        sprintf(
-                            /* translators: %s: currency code (e.g. USD) */
-                            __( 'Precio no disponible en %s', 'japp-mc' ),
-                            $active_currency
-                        )
+            $currency_span = '<span class="notranslate" translate="no">' . esc_html( $active_currency ) . '</span>';
+            $notice = '<span class="imc-currency-notice">'
+                    . sprintf(
+                        /* translators: %s: currency code wrapped in a notranslate span */
+                        esc_html__( 'Precio no disponible en %s', 'japp-mc' ),
+                        $currency_span
                     )
                     . '</span>';
         }
