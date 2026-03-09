@@ -19,6 +19,17 @@ class IMC_Price_Handler {
      */
     private $fallback_products = [];
 
+    /**
+     * Set by filter_price / filter_regular_price when a product falls back
+     * to the default currency.  While set, the formatting filters (currency,
+     * decimals, separators, position) return WooCommerce defaults so that
+     * the price HTML is rendered with the correct symbol and formatting.
+     * Cleared by append_currency_badge() after the price HTML is assembled.
+     *
+     * @var int|null  Product ID or null.
+     */
+    private $current_fallback_product_id = null;
+
     public function __construct() {
 
         /* ── Currency code & symbol ─────────────────────── */
@@ -114,6 +125,10 @@ class IMC_Price_Handler {
         if ( ! $this->should_filter() || $this->filtering ) {
             return $currency;
         }
+        // Fallback product → use the store's default currency (pass through).
+        if ( $this->current_fallback_product_id !== null ) {
+            return $currency;
+        }
         $this->filtering = true;
         $active = IMC()->get_active_currency();
         $this->filtering = false;
@@ -125,7 +140,7 @@ class IMC_Price_Handler {
      * ============================================================= */
 
     public function filter_decimals( $decimals ) {
-        if ( ! $this->should_filter() ) {
+        if ( ! $this->should_filter() || $this->current_fallback_product_id !== null ) {
             return $decimals;
         }
         $c = $this->currency_config();
@@ -133,7 +148,7 @@ class IMC_Price_Handler {
     }
 
     public function filter_decimal_sep( $sep ) {
-        if ( ! $this->should_filter() ) {
+        if ( ! $this->should_filter() || $this->current_fallback_product_id !== null ) {
             return $sep;
         }
         $c = $this->currency_config();
@@ -141,7 +156,7 @@ class IMC_Price_Handler {
     }
 
     public function filter_thousand_sep( $sep ) {
-        if ( ! $this->should_filter() ) {
+        if ( ! $this->should_filter() || $this->current_fallback_product_id !== null ) {
             return $sep;
         }
         $c = $this->currency_config();
@@ -152,7 +167,7 @@ class IMC_Price_Handler {
      * pre_option filter: returning a non-false value short-circuits get_option().
      */
     public function filter_currency_pos( $pre ) {
-        if ( ! $this->should_filter() ) {
+        if ( ! $this->should_filter() || $this->current_fallback_product_id !== null ) {
             return $pre;
         }
         $c = $this->currency_config();
@@ -175,17 +190,20 @@ class IMC_Price_Handler {
         $sale = $product->get_meta( "_imc_sale_price_{$cur}" );
 
         if ( '' !== $sale && false !== $sale ) {
+            $this->current_fallback_product_id = null;
             return $sale;
         }
 
         $regular = $product->get_meta( "_imc_regular_price_{$cur}" );
 
         if ( '' !== $regular && false !== $regular ) {
+            $this->current_fallback_product_id = null;
             return $regular;
         }
 
         // No custom price for this currency → mark as fallback.
         $this->fallback_products[ $product->get_id() ] = true;
+        $this->current_fallback_product_id = $product->get_id();
         return $price;
     }
 
@@ -197,10 +215,12 @@ class IMC_Price_Handler {
         $regular = $product->get_meta( "_imc_regular_price_{$cur}" );
 
         if ( '' !== $regular && false !== $regular ) {
+            $this->current_fallback_product_id = null;
             return $regular;
         }
 
         $this->fallback_products[ $product->get_id() ] = true;
+        $this->current_fallback_product_id = $product->get_id();
         return $price;
     }
 
@@ -219,6 +239,7 @@ class IMC_Price_Handler {
         $regular = $product->get_meta( "_imc_regular_price_{$cur}" );
         if ( '' === $regular || false === $regular ) {
             $this->fallback_products[ $product->get_id() ] = true;
+            $this->current_fallback_product_id = $product->get_id();
         }
         return $price;
     }
@@ -298,6 +319,7 @@ class IMC_Price_Handler {
      */
     public function append_currency_badge( $price_html, $product ) {
         if ( ! $this->should_filter() || empty( $price_html ) ) {
+            $this->current_fallback_product_id = null;
             return $price_html;
         }
 
@@ -346,6 +368,8 @@ class IMC_Price_Handler {
         }
 
         // Badge position: before or after the price HTML.
+        $this->current_fallback_product_id = null;
+
         if ( $show_badge && IMC_Admin_Settings::get( 'badge_position' ) === 'before' ) {
             return $badge . ' ' . $price_html . $notice;
         }

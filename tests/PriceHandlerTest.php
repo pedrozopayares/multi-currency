@@ -323,6 +323,83 @@ class PriceHandlerTest extends TestCase {
         $this->assertFalse( $handler->product_has_currency_price( $product, 'USD' ) );
     }
 
+    /* ── Formatting filters use default currency on fallback ── */
+
+    public function test_filter_currency_returns_default_on_fallback(): void {
+        $_COOKIE['imc_currency'] = 'USD';
+
+        $handler = new IMC_Price_Handler();
+        $product = new WC_Product( 60 );
+        // No USD meta → fallback.
+        $handler->filter_price( '100000', $product );
+
+        // filter_currency should return the WC default (passed-in value).
+        $this->assertSame( 'COP', $handler->filter_currency( 'COP' ) );
+    }
+
+    public function test_filter_currency_returns_active_when_no_fallback(): void {
+        $_COOKIE['imc_currency'] = 'USD';
+
+        $handler = new IMC_Price_Handler();
+        $product = new WC_Product( 61 );
+        $product->set_meta( '_imc_regular_price_USD', '29.99' );
+
+        $handler->filter_price( '100000', $product );
+
+        // filter_currency should return the active currency (USD).
+        $this->assertSame( 'USD', $handler->filter_currency( 'COP' ) );
+    }
+
+    public function test_formatting_filters_passthrough_on_fallback(): void {
+        $_COOKIE['imc_currency'] = 'USD';
+
+        $handler = new IMC_Price_Handler();
+        $product = new WC_Product( 62 );
+        // No USD meta → fallback.
+        $handler->filter_price( '100000', $product );
+
+        // All formatting filters should return the WC default values
+        // (the values passed in), not the active currency's config.
+        $this->assertSame( 0, $handler->filter_decimals( 0 ) );
+        $this->assertSame( ',', $handler->filter_decimal_sep( ',' ) );
+        $this->assertSame( '.', $handler->filter_thousand_sep( '.' ) );
+        $this->assertSame( 'left', $handler->filter_currency_pos( 'left' ) );
+    }
+
+    public function test_formatting_filters_override_when_no_fallback(): void {
+        $_COOKIE['imc_currency'] = 'USD';
+
+        $handler = new IMC_Price_Handler();
+        $this->set_imc_currency_manager();
+
+        $product = new WC_Product( 63 );
+        $product->set_meta( '_imc_regular_price_USD', '29.99' );
+
+        $handler->filter_price( '100000', $product );
+
+        // Formatting should use the active currency config (USD: 2 decimals, etc.)
+        $this->assertSame( 2, $handler->filter_decimals( 0 ) );
+    }
+
+    public function test_fallback_context_cleared_by_badge(): void {
+        $_COOKIE['imc_currency'] = 'USD';
+        update_option( 'imc_plugin_settings', [ 'show_currency_badge' => '1', 'badge_position' => 'after' ] );
+
+        $handler = new IMC_Price_Handler();
+        $product = new WC_Product( 64 );
+        // No USD meta → fallback.
+        $handler->filter_price( '100000', $product );
+
+        // Verify fallback context is active.
+        $this->assertSame( 'COP', $handler->filter_currency( 'COP' ) );
+
+        // append_currency_badge clears the context.
+        $handler->append_currency_badge( '<span>$100.000</span>', $product );
+
+        // After badge, filter_currency should return active currency again.
+        $this->assertSame( 'USD', $handler->filter_currency( 'COP' ) );
+    }
+
     /* ── Cart hash ──────────────────────────────────────── */
 
     public function test_append_currency_to_hash(): void {
