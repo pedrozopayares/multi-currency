@@ -93,62 +93,79 @@ class IMC_Admin_Settings {
             return;
         }
 
+        $active_tab   = sanitize_key( $_POST['imc_active_tab'] ?? 'currencies' );
         $default_code = IMC()->currency_manager->get_default_currency();
 
-        /* ── Currencies ─────────────────────────────────── */
-        $currencies = [];
-        if ( ! empty( $_POST['imc_currency'] ) && is_array( $_POST['imc_currency'] ) ) {
-            foreach ( $_POST['imc_currency'] as $item ) { // phpcs:ignore
-                $code = strtoupper( sanitize_text_field( $item['code'] ?? '' ) );
-                if ( empty( $code ) || $code === $default_code ) {
-                    continue;
-                }
-                $currencies[ $code ] = [
-                    'code'         => $code,
-                    'name'         => sanitize_text_field( $item['name'] ?? '' ),
-                    'symbol'       => sanitize_text_field( $item['symbol'] ?? $code ),
-                    'position'     => sanitize_text_field( $item['position'] ?? 'left' ),
-                    'decimals'     => absint( $item['decimals'] ?? 2 ),
-                    'decimal_sep'  => sanitize_text_field( $item['decimal_sep'] ?? '.' ),
-                    'thousand_sep' => sanitize_text_field( $item['thousand_sep'] ?? ',' ),
-                ];
-            }
-        }
-        IMC()->currency_manager->save_currencies( $currencies );
-
-        /* ── Language map ───────────────────────────────── */
-        $lang_map = [];
-        if ( ! empty( $_POST['imc_lang'] ) && is_array( $_POST['imc_lang'] ) ) {
-            foreach ( $_POST['imc_lang'] as $item ) { // phpcs:ignore
-                $lang     = strtolower( sanitize_text_field( $item['lang'] ?? '' ) );
-                $currency = strtoupper( sanitize_text_field( $item['currency'] ?? '' ) );
-                if ( $lang && $currency ) {
-                    $lang_map[ $lang ] = $currency;
+        /* ── Currencies (only when saving the currencies tab) ── */
+        if ( 'currencies' === $active_tab ) {
+            $currencies = [];
+            if ( ! empty( $_POST['imc_currency'] ) && is_array( $_POST['imc_currency'] ) ) {
+                foreach ( $_POST['imc_currency'] as $item ) { // phpcs:ignore
+                    $code = strtoupper( sanitize_text_field( $item['code'] ?? '' ) );
+                    if ( empty( $code ) || $code === $default_code ) {
+                        continue;
+                    }
+                    $currencies[ $code ] = [
+                        'code'         => $code,
+                        'name'         => sanitize_text_field( $item['name'] ?? '' ),
+                        'symbol'       => sanitize_text_field( $item['symbol'] ?? $code ),
+                        'position'     => sanitize_text_field( $item['position'] ?? 'left' ),
+                        'decimals'     => absint( $item['decimals'] ?? 2 ),
+                        'decimal_sep'  => sanitize_text_field( $item['decimal_sep'] ?? '.' ),
+                        'thousand_sep' => sanitize_text_field( $item['thousand_sep'] ?? ',' ),
+                    ];
                 }
             }
+            IMC()->currency_manager->save_currencies( $currencies );
+
+            /* ── Language map ───────────────────────────── */
+            $lang_map = [];
+            if ( ! empty( $_POST['imc_lang'] ) && is_array( $_POST['imc_lang'] ) ) {
+                foreach ( $_POST['imc_lang'] as $item ) { // phpcs:ignore
+                    $lang     = strtolower( sanitize_text_field( $item['lang'] ?? '' ) );
+                    $currency = strtoupper( sanitize_text_field( $item['currency'] ?? '' ) );
+                    if ( $lang && $currency ) {
+                        $lang_map[ $lang ] = $currency;
+                    }
+                }
+            }
+            IMC()->currency_manager->save_language_map( $lang_map );
         }
-        IMC()->currency_manager->save_language_map( $lang_map );
 
-        /* ── Plugin settings ────────────────────────────── */
-        $settings = [];
-        $post_s   = $_POST['imc_settings'] ?? [];
+        /* ── Plugin settings (general tab) ──────────────── */
+        if ( 'general' === $active_tab ) {
+            $settings = self::get_settings(); // Preserve existing values.
+            $post_s   = $_POST['imc_settings'] ?? [];
 
-        // Checkboxes: present → '1', absent → '0'
-        foreach ( [ 'enable_floating_switcher', 'show_currency_badge', 'auto_detect_language',
-                    'gtranslate_enabled', 'gtranslate_auto_defaults' ] as $cb ) {
-            $settings[ $cb ] = ! empty( $post_s[ $cb ] ) ? '1' : '0';
+            // Checkboxes: present → '1', absent → '0'
+            foreach ( [ 'enable_floating_switcher', 'show_currency_badge', 'auto_detect_language' ] as $cb ) {
+                $settings[ $cb ] = ! empty( $post_s[ $cb ] ) ? '1' : '0';
+            }
+
+            // Selects / text
+            $settings['floating_position'] = sanitize_text_field( $post_s['floating_position'] ?? $settings['floating_position'] );
+            $settings['badge_position']    = sanitize_text_field( $post_s['badge_position'] ?? $settings['badge_position'] );
+
+            // Integers
+            $settings['cookie_duration'] = max( 1, absint( $post_s['cookie_duration'] ?? $settings['cookie_duration'] ) );
+
+            update_option( self::OPTION_KEY, $settings );
         }
 
-        // Selects / text
-        $settings['floating_position']        = sanitize_text_field( $post_s['floating_position'] ?? 'bottom-left' );
-        $settings['badge_position']           = sanitize_text_field( $post_s['badge_position'] ?? 'after' );
-        $settings['gtranslate_detect_method'] = sanitize_text_field( $post_s['gtranslate_detect_method'] ?? 'both' );
+        /* ── Plugin settings (gtranslate tab) ───────────── */
+        if ( 'gtranslate' === $active_tab ) {
+            $settings = self::get_settings(); // Preserve existing values.
+            $post_s   = $_POST['imc_settings'] ?? [];
 
-        // Integers
-        $settings['cookie_duration']         = max( 1, absint( $post_s['cookie_duration'] ?? 30 ) );
-        $settings['gtranslate_reload_delay'] = max( 100, absint( $post_s['gtranslate_reload_delay'] ?? 800 ) );
+            foreach ( [ 'gtranslate_enabled', 'gtranslate_auto_defaults' ] as $cb ) {
+                $settings[ $cb ] = ! empty( $post_s[ $cb ] ) ? '1' : '0';
+            }
 
-        update_option( self::OPTION_KEY, $settings );
+            $settings['gtranslate_detect_method'] = sanitize_text_field( $post_s['gtranslate_detect_method'] ?? $settings['gtranslate_detect_method'] );
+            $settings['gtranslate_reload_delay']  = max( 100, absint( $post_s['gtranslate_reload_delay'] ?? $settings['gtranslate_reload_delay'] ) );
+
+            update_option( self::OPTION_KEY, $settings );
+        }
 
         add_action( 'admin_notices', function () {
             echo '<div class="updated"><p>' . esc_html__( 'Configuración guardada.', 'japp-mc' ) . '</p></div>';
@@ -202,6 +219,7 @@ class IMC_Admin_Settings {
 
             <form method="post">
                 <?php wp_nonce_field( 'imc_save_settings', 'imc_nonce' ); ?>
+                <input type="hidden" name="imc_active_tab" value="<?php echo esc_attr( $active_tab ); ?>">
 
                 <?php
                 switch ( $active_tab ) :
