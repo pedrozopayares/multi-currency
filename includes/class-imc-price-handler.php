@@ -374,12 +374,12 @@ class IMC_Price_Handler {
         $notice = '';
         if ( $is_fallback ) {
             $currency_span = '<span class="notranslate" translate="no">' . esc_html( $active_currency ) . '</span>';
+            // Use &nbsp; between translated text and the currency code so
+            // GTranslate cannot strip the space when it replaces the text node.
             $notice = '<span class="imc-currency-notice">'
-                    . sprintf(
-                        /* translators: %s: currency code wrapped in a notranslate span */
-                        esc_html__( 'Precio no disponible en %s', 'japp-mc' ),
-                        $currency_span
-                    )
+                    . esc_html__( 'Precio no disponible en', 'japp-mc' )
+                    . '&nbsp;'
+                    . $currency_span
                     . '</span>';
         }
 

@@ -3,7 +3,7 @@
  * Plugin Name: Multi Currency with Multi Language Detector for WooCommerce
  * Plugin URI:  https://github.com/pedrozopayares/multi-currency
  * Description: Cambia automáticamente la moneda de WooCommerce según el idioma del sitio. Permite definir precios por moneda en cada producto y variación.
- * Version:     1.0.4
+ * Version:     1.0.5
  * Author:      Javier Andrés Pedrozo Payares
  * Author URI:  https://github.com/pedrozopayares
  * License:     GPL-2.0+
@@ -18,7 +18,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'IMC_VERSION',    '1.0.4' );
+define( 'IMC_VERSION',    '1.0.5' );
 define( 'IMC_PLUGIN_FILE', __FILE__ );
 define( 'IMC_PLUGIN_DIR',  plugin_dir_path( __FILE__ ) );
 define( 'IMC_PLUGIN_URL',  plugin_dir_url( __FILE__ ) );
