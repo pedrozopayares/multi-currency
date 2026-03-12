@@ -78,6 +78,20 @@
     }
 
     /**
+     * Read the current GTranslate target language from the `googtrans` cookie.
+     * The cookie format is "/source/target" (e.g. "/es/en").
+     * Returns the target language code or null if not set.
+     */
+    function getGoogTransLang() {
+        var match = document.cookie.match(/(?:^|;\s*)googtrans=([^;]*)/);
+        if (!match) return null;
+        var val = decodeURIComponent(match[1]);
+        var parts = val.split('/').filter(Boolean);
+        // Last segment is the target language
+        return parts.length >= 2 ? parts[parts.length - 1] : (parts[0] || null);
+    }
+
+    /**
      * Handle a GTranslate-initiated language change.
      *
      * Instead of dispatching `imc_switch_currency` (which does an immediate
@@ -203,6 +217,13 @@
      * the Google Translate widget is loaded asynchronously), we use
      * event delegation on `document.body` and also poll for the select.
      *
+     * PRIORITY RULE: manual currency selection (floating switcher / shortcode)
+     * takes priority over GTranslate's previously-set language.  On page load,
+     * GTranslate re-initialises from its `googtrans` cookie and may fire a
+     * `change` event on its `<select>`.  We capture the initial GT language at
+     * startup and only react when it actually *changes* — so re-initialisation
+     * is ignored while a genuine user-initiated language switch is honoured.
+     *
      * NOTE: we do NOT call switchIfNeeded / dispatch imc_switch_currency here.
      * Instead we call switchCurrencyForGTranslate(), which sets the cookie
      * client-side and delays the reload so GTranslate can persist its own state.
@@ -213,7 +234,20 @@
             return;
         }
 
+        // Capture the GT target language at page-load time.
+        // Any event that reports the same language is just GT re-initialising
+        // (not a user-initiated change) and must be ignored.
+        var initialGtLang = getGoogTransLang();
+
         var method = imcFrontend.gtDetectMethod || 'both';
+
+        // Helper: process a GT language change only if it differs from the
+        // language that was active when the page loaded.
+        function onGtLangChange(lang) {
+            if (!lang || lang === initialGtLang) return;
+            initialGtLang = lang; // update baseline for subsequent events
+            switchCurrencyForGTranslate(lang);
+        }
 
         // ── A) Floating flag links (event delegation on body) ──
         if (method === 'both' || method === 'flags') {
@@ -222,15 +256,13 @@
                 if (!link) return;
 
                 var lang = link.getAttribute('data-gt-lang');
-                if (lang) {
-                    switchCurrencyForGTranslate(lang);
-                }
+                onGtLangChange(lang);
             });
         }
 
         // ── B) Google Translate <select> (may not exist yet) ──
         if (method === 'both' || method === 'select') {
-            watchGoogTeCombo();
+            watchGoogTeCombo(onGtLangChange);
         }
     }
 
@@ -239,7 +271,7 @@
      * 10 seconds. Once found, attach a `change` listener. This handles the
      * case where Google Translate is loaded asynchronously after page load.
      */
-    function watchGoogTeCombo() {
+    function watchGoogTeCombo(onGtLangChange) {
         var maxAttempts = 20;
         var attempts    = 0;
 
@@ -248,9 +280,7 @@
             if (sel) {
                 sel.addEventListener('change', function () {
                     var lang = sel.value;
-                    if (lang) {
-                        switchCurrencyForGTranslate(lang);
-                    }
+                    onGtLangChange(lang);
                 });
                 return; // done
             }
