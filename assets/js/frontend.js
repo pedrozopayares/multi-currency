@@ -160,10 +160,31 @@
         }
 
         var currency = e.detail.currency.toUpperCase();
-        var url      = new URL(window.location.href);
+        setCookie('imc_currency', currency, cookieDays());
+        window.location.reload();
+    });
 
-        url.searchParams.set('imc_currency', currency);
-        window.location.href = url.toString();
+    /* ── Click handler for currency switcher links ──────── */
+    /**
+     * Intercept clicks on [data-currency] links (floating widget + shortcode).
+     * Instead of navigating to ?imc_currency=X (which requires a server-side
+     * redirect back to the clean URL and can be served from browser cache),
+     * we set the cookie client-side and reload to ensure a fresh render.
+     */
+    document.addEventListener('click', function (e) {
+        var link = e.target.closest('[data-currency]');
+        if (!link || typeof imcFrontend === 'undefined') return;
+
+        var currency = link.getAttribute('data-currency');
+        if (!currency) return;
+
+        e.preventDefault();
+
+        currency = currency.toUpperCase();
+        if (currency === imcFrontend.activeCurrency) return;
+
+        setCookie('imc_currency', currency, cookieDays());
+        window.location.reload();
     });
 
     /* ── GTranslate watcher ──────────────────────────────── */
